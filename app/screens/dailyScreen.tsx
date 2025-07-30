@@ -13,6 +13,7 @@ import { GlassCard } from '../components/GlassCard'
 import { ProgressRing } from '../components/ProgressRing'
 import { GlassButton } from '../components/GlassButton'
 import { ScreenLayout } from '../layouts/ScreenLayout'
+import { ShareActionModal } from './modals/shareActionModal'
 import { theme } from '../themes/theme'
 import { useAppStore } from '../state/appStore'
 
@@ -282,6 +283,8 @@ export const DailyScreen: React.FC = () => {
 
         <View style={{ height: 100 }} />
       </Animated.ScrollView>
+      
+      <ShareActionModal />
     </ScreenLayout>
   )
 }

@@ -30,7 +30,6 @@ import { ProgressScreen } from '../screens/progressScreen'
 import { ProfileScreen } from '../screens/profileScreen'
 
 // Modals
-import { ShareActionModal } from '../screens/modals/shareActionModal'
 import { GoalAnnouncementModal } from '../screens/modals/goalAnnouncementModal'
 import { DailyReviewModal } from '../screens/modals/dailyReviewModal'
 
@@ -302,7 +301,6 @@ const MainNavigator = () => {
         />
       </Tab.Navigator>
       
-      <ShareActionModal />
       <DailyReviewModal />
     </>
   )

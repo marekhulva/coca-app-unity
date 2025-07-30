@@ -5,11 +5,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
+  Modal,
+  SafeAreaView,
 } from 'react-native'
 import { GlassButton } from '../../components/GlassButton'
 import { TextField } from '../../components/TextField'
 import { GlassCard } from '../../components/GlassCard'
-import { ModalPortal } from '../../components/ModalPortal'
 import { theme } from '../../themes/theme'
 import { useAppStore } from '../../state/appStore'
 
@@ -35,12 +36,21 @@ export const ShareActionModal: React.FC = () => {
   if (!shareAction) return null
 
   return (
-    <ModalPortal
+    <Modal
       visible={showShareModal}
-      onClose={handleClose}
+      transparent
       animationType="slide"
+      onRequestClose={handleClose}
+      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
     >
-      <View style={styles.modalContent}>
+      <TouchableOpacity 
+        style={styles.backdrop} 
+        activeOpacity={1} 
+        onPress={handleClose}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <TouchableOpacity activeOpacity={1} style={styles.modalWrapper}>
+            <View style={styles.modalContent}>
               <View style={styles.header}>
                 <Text style={styles.title}>Share Your Progress</Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
@@ -112,22 +122,52 @@ export const ShareActionModal: React.FC = () => {
             variant="solid"
             gradient={theme.gradient.vibrant}
             size="lg"
-            onPress={() => {
-              handleShareAction()
-              setTimeout(handleClose, 100)
-            }}
+            onPress={handleShareAction}
             style={styles.footerButton}
           />
         </View>
               </View>
-      </View>
-    </ModalPortal>
+            </View>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </TouchableOpacity>
+    </Modal>
   )
 }
 
 const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  
+  safeArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  
+  modalWrapper: {
+    width: '100%',
+  },
+  
   modalContent: {
+    backgroundColor: theme.color.background.primary,
+    borderTopLeftRadius: theme.radius.xxl,
+    borderTopRightRadius: theme.radius.xxl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,
+    minHeight: 400,
+    ...Platform.select({
+      ios: theme.shadow.xl,
+      web: {
+        boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.1)',
+        maxWidth: 430,
+        alignSelf: 'center',
+        width: '100%',
+      },
+    }),
   },
   
   header: {

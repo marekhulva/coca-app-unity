@@ -353,42 +353,52 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   handleShareAction: () => {
     const state = get()
-    if (state.shareAction) {
-      // Update checked actions first
-      set((prevState) => ({
-        checkedActions: {
-          ...prevState.checkedActions,
-          [state.shareAction!.id]: true
-        },
-      }))
-      
-      // Handle group sharing
-      if (state.sharePrivacy === 'group') {
+    if (!state.shareAction) return
+    
+    const actionId = state.shareAction.id
+    const actionName = state.shareAction.name
+    const privacy = state.sharePrivacy
+    const note = state.shareNote
+    
+    // First, mark the action as completed
+    set((prevState) => ({
+      checkedActions: {
+        ...prevState.checkedActions,
+        [actionId]: true
+      },
+    }))
+    
+    // Then handle group sharing if needed
+    if (privacy === 'group') {
+      // Use setTimeout to ensure state updates don't conflict
+      setTimeout(() => {
+        const currentState = get()
         const newPost: FeedPost = {
           id: Date.now().toString(),
-          userId: state.user.id,
-          userName: state.user.name,
-          userAvatar: state.user.avatar,
+          userId: currentState.user.id,
+          userName: currentState.user.name,
+          userAvatar: currentState.user.avatar,
           type: 'checkin',
-          content: state.shareNote || `Completed: ${state.shareAction.name}`,
+          content: note || `Completed: ${actionName}`,
           timestamp: new Date(),
           reactions: {},
         }
         
-        // Add post to feed
         set((prevState) => ({
           feedPosts: [newPost, ...prevState.feedPosts]
         }))
-      }
-      
-      // Clear modal state separately
+      }, 50)
+    }
+    
+    // Finally, clear modal state with a slight delay
+    setTimeout(() => {
       set({
         showShareModal: false,
         shareAction: null,
         shareNote: '',
-        sharePrivacy: 'group', // Reset to default
+        sharePrivacy: 'group',
       })
-    }
+    }, 100)
   },
   
   setSharePrivacy: (privacy) => set({ sharePrivacy: privacy }),

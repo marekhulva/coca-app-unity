@@ -62,7 +62,7 @@ export const ModalPortal: React.FC<ModalPortalProps> = ({
   if (!visible) return null
 
   return (
-    <View style={[StyleSheet.absoluteFill, { zIndex: 999 }]} pointerEvents="box-none">
+    <View style={styles.modalRoot} pointerEvents="box-none">
       <Animated.View
         style={[
           styles.backdrop,
@@ -119,6 +119,11 @@ export const ModalPortal: React.FC<ModalPortalProps> = ({
 }
 
 const styles = StyleSheet.create({
+  modalRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+  },
+
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
