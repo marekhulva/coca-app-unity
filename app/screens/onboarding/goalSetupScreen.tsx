@@ -196,10 +196,49 @@ export const GoalSetupScreen: React.FC = () => {
           }}
         >
           <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-            <Text style={styles.title}>What's your goal?</Text>
-            <Text style={styles.subtitle}>
-              Let's turn your ambition into achievement ✨
-            </Text>
+            <View style={styles.headerContainer}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.title}>What's your goal?</Text>
+                <Text style={styles.subtitle}>
+                  Let's turn your ambition into achievement ✨
+                </Text>
+              </View>
+              {/* Temporary skip button for testing */}
+              {__DEV__ && (
+                <TouchableOpacity
+                  onPress={() => {
+                    // Skip setup with mock data
+                    useAppStore.setState({
+                      appState: 'main',
+                      currentStep: 0,
+                      userGoals: [{
+                        id: 'mock-goal-1',
+                        title: 'Run a Marathon',
+                        metric: 'Complete 26.2 miles',
+                        deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+                        why: 'To challenge myself',
+                        isPublic: true,
+                        milestones: [
+                          { name: '5K Run', date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), completed: false },
+                          { name: 'Half Marathon', date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), completed: false },
+                        ],
+                        progress: 25,
+                        createdAt: new Date(),
+                      }],
+                      userActions: [
+                        { id: 'action-1', goalId: 'mock-goal-1', type: 'goal', name: 'Morning Run', schedule: 'Daily' },
+                        { id: 'action-2', goalId: 'mock-goal-1', type: 'goal', name: 'Strength Training', schedule: 'Mon, Wed, Fri' },
+                        { id: 'habit-1', goalId: 'mock-goal-1', type: 'performance', name: 'Drink 3L Water', schedule: 'Daily' },
+                        { id: 'habit-2', goalId: 'mock-goal-1', type: 'performance', name: 'Sleep 8 hours', schedule: 'Daily' },
+                      ],
+                    })
+                  }}
+                  style={styles.skipButton}
+                >
+                  <Text style={styles.skipButtonText}>Skip Setup (Dev)</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </Animated.View>
 
           <Animated.View
@@ -317,6 +356,17 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xxxl,
   },
   
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.xl,
+  },
+  
+  titleContainer: {
+    flex: 1,
+  },
+  
   title: {
     fontSize: 40,
     fontWeight: '800',
@@ -328,8 +378,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     color: theme.color.text.secondary,
-    marginBottom: theme.spacing.xl,
     opacity: 0.8,
+  },
+  
+  skipButton: {
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 0, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.radius.full,
+    marginLeft: theme.spacing.md,
+  },
+  
+  skipButtonText: {
+    color: '#FF3B30',
+    fontSize: 12,
+    fontWeight: '600',
   },
   
   card: {
