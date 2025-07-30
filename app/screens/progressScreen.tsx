@@ -24,15 +24,17 @@ export const ProgressScreen: React.FC = () => {
     userActions,
     checkedActions,
     expandedGoalId,
-    setExpandedGoalId,
   } = useAppStore((state) => ({
     progressTab: state.progressTab,
     userGoals: state.userGoals,
     userActions: state.userActions,
     checkedActions: state.checkedActions,
     expandedGoalId: state.expandedGoalId,
-    setExpandedGoalId: (id: string | null) => state.expandedGoalId = id,
   }))
+  
+  const setExpandedGoalId = (id: string | null) => {
+    useAppStore.setState({ expandedGoalId: id })
+  }
 
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(50)).current
