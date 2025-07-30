@@ -1,4 +1,15 @@
-export const theme = {
+// Import Matrix theme
+import { matrixTheme } from './theme.matrix'
+
+// Original theme preserved below, uncomment to switch back
+// export const originalTheme = {
+
+// ACTIVE THEME: MATRIX
+export const theme = matrixTheme
+
+// Original theme backup:
+/*
+export const originalTheme = {
   color: {
     primary: '#007AFF',
     secondary: '#5856D6',
@@ -171,5 +182,7 @@ export const theme = {
     slow: 500,
   },
 } as const
+
+*/
 
 export type Theme = typeof theme

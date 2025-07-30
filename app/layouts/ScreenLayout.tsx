@@ -2,6 +2,7 @@ import React from 'react'
 import { View, StyleSheet, ViewProps } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { AnimatedGradient } from '../components/AnimatedGradient'
+import { MatrixRain } from '../components/MatrixRain'
 import { theme } from '../themes/theme'
 
 interface ScreenLayoutProps extends ViewProps {
@@ -9,6 +10,7 @@ interface ScreenLayoutProps extends ViewProps {
   gradient?: string[]
   safeArea?: boolean
   edges?: ('top' | 'bottom' | 'left' | 'right')[]
+  matrixRain?: boolean
 }
 
 export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
@@ -16,6 +18,7 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   gradient = theme.gradient.vibrant,
   safeArea = true,
   edges = ['top'],
+  matrixRain = true, // Enable Matrix rain by default
   style,
   ...props
 }) => {
@@ -23,11 +26,15 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 
   return (
     <View style={styles.container}>
-      <AnimatedGradient
-        colors={gradient}
-        style={styles.gradient}
-        animate={false}
-      />
+      {matrixRain ? (
+        <MatrixRain style={styles.matrixRain} />
+      ) : (
+        <AnimatedGradient
+          colors={gradient}
+          style={styles.gradient}
+          animate={false}
+        />
+      )}
       <Container style={[styles.content, style]} edges={edges} {...props}>
         {children}
       </Container>
@@ -38,12 +45,17 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F7',
+    backgroundColor: theme.color.background.primary,
   },
   
   gradient: {
     opacity: 0.15,
     height: 300,
+  },
+  
+  matrixRain: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.3,
   },
   
   content: {
