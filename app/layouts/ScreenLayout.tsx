@@ -18,7 +18,7 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   gradient = theme.gradient.vibrant,
   safeArea = true,
   edges = ['top'],
-  matrixRain = true, // Enable Matrix rain by default
+  matrixRain = false, // Disable Matrix rain by default
   style,
   ...props
 }) => {
