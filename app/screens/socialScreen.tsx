@@ -5,16 +5,18 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Animated,
   Dimensions,
   Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { GlassCard } from '../components/GlassCard'
+import { PromptCarousel } from '../components/PromptCarousel'
+import { QuickCompose } from '../components/QuickCompose'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { theme } from '../themes/theme'
 import { useAppStore } from '../state/appStore'
+import { Prompt } from '../constants/prompts'
 
 const { width } = Dimensions.get('window')
 
@@ -23,29 +25,19 @@ export const SocialScreen: React.FC = () => {
     feedPosts, 
     user,
     handleReaction,
-    setCurrentScreen 
+    setCurrentScreen,
   } = useAppStore()
   
-  const [postContent, setPostContent] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
+  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null)
   const scrollY = useRef(new Animated.Value(0)).current
   const fadeAnim = useRef(new Animated.Value(0)).current
-  const scaleAnim = useRef(new Animated.Value(0.8)).current
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start()
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start()
   }, [])
 
   const headerScale = scrollY.interpolate({
@@ -60,34 +52,6 @@ export const SocialScreen: React.FC = () => {
     extrapolate: 'clamp',
   })
 
-  const stories = [
-    { id: '1', name: 'Your Story', avatar: user.avatar, isUser: true },
-    { id: '2', name: 'Sarah', avatar: '👩', hasStory: true },
-    { id: '3', name: 'Mike', avatar: '👨', hasStory: true },
-    { id: '4', name: 'Emma', avatar: '👩‍💼', hasStory: false },
-    { id: '5', name: 'John', avatar: '🧑‍💻', hasStory: true },
-  ]
-
-  const renderStory = (story: typeof stories[0]) => (
-    <TouchableOpacity key={story.id} style={styles.storyContainer}>
-      <LinearGradient
-        colors={story.hasStory ? ['#FF006E', '#8338EC', '#3A86FF'] : ['#E0E0E0', '#E0E0E0']}
-        style={styles.storyGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.storyInner}>
-          <Text style={styles.storyAvatar}>{story.avatar}</Text>
-        </View>
-      </LinearGradient>
-      {story.isUser && (
-        <View style={styles.addStoryBadge}>
-          <Text style={styles.addStoryText}>+</Text>
-        </View>
-      )}
-      <Text style={styles.storyName}>{story.name}</Text>
-    </TouchableOpacity>
-  )
 
   const renderPost = (post: typeof feedPosts[0], index: number) => {
     const animatedValue = useRef(new Animated.Value(0)).current
@@ -162,6 +126,14 @@ export const SocialScreen: React.FC = () => {
             >
               <Text style={styles.goalBadgeText}>🎯 New Goal</Text>
             </LinearGradient>
+          )}
+          
+          {post.type === 'prompted' && post.promptId && (
+            <View style={styles.promptBadge}>
+              <Text style={styles.promptBadgeText}>
+                {post.promptEmoji} {post.promptId.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}
+              </Text>
+            </View>
           )}
           
           <Text style={styles.postContent}>{post.content}</Text>
@@ -265,14 +237,15 @@ export const SocialScreen: React.FC = () => {
           scrollEventThrottle={16}
           style={{ opacity: fadeAnim }}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.storiesScroll}
-            contentContainerStyle={styles.storiesContent}
-          >
-            {stories.map(renderStory)}
-          </ScrollView>
+          <PromptCarousel 
+            onPromptSelect={setSelectedPrompt}
+            selectedPromptId={selectedPrompt?.id || null}
+          />
+          
+          <QuickCompose 
+            selectedPrompt={selectedPrompt}
+            onClose={() => setSelectedPrompt(null)}
+          />
           
           <View style={styles.feedContainer}>
             {feedPosts.map((post, index) => renderPost(post, index))}
@@ -282,84 +255,6 @@ export const SocialScreen: React.FC = () => {
         </Animated.ScrollView>
       </SafeAreaView>
       
-      {/* Floating Create Button */}
-      <Animated.View style={[
-        styles.floatingButton,
-        {
-          transform: [
-            { scale: scaleAnim },
-            {
-              translateY: scrollY.interpolate({
-                inputRange: [0, 100],
-                outputRange: [0, 100],
-                extrapolate: 'clamp',
-              })
-            }
-          ],
-        }
-      ]}>
-        <TouchableOpacity
-          onPress={() => setIsCreating(!isCreating)}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={['#FF006E', '#8338EC']}
-            style={styles.floatingGradient}
-          >
-            <Text style={styles.floatingIcon}>+</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
-      
-      {/* Create Post Modal */}
-      {isCreating && (
-        <TouchableOpacity 
-          style={styles.createModal}
-          activeOpacity={1}
-          onPress={() => setIsCreating(false)}
-        >
-          <TouchableOpacity activeOpacity={1}>
-            <GlassCard
-              variant="light"
-              intensity={95}
-              padding="lg"
-              style={styles.createCard}
-            >
-              <View style={styles.createHeader}>
-                <Text style={styles.createTitle}>Share Your Progress</Text>
-                <TouchableOpacity onPress={() => setIsCreating(false)}>
-                  <Text style={styles.closeButton}>✕</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.createContent}>
-                <Text style={styles.createAvatar}>{user.avatar}</Text>
-                <TextInput
-                  style={styles.createInput}
-                  placeholder="What's on your mind?"
-                  placeholderTextColor={theme.color.text.placeholder}
-                  value={postContent}
-                  onChangeText={setPostContent}
-                  multiline
-                  autoFocus
-                />
-              </View>
-              
-              <TouchableOpacity
-                style={styles.postButton}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={['#FF006E', '#8338EC']}
-                  style={styles.postGradient}
-                >
-                  <Text style={styles.postButtonText}>Share</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </GlassCard>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      )}
     </View>
   )
 }
@@ -418,65 +313,6 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xxxl,
   },
   
-  storiesScroll: {
-    marginBottom: theme.spacing.lg,
-  },
-  
-  storiesContent: {
-    paddingHorizontal: theme.spacing.lg,
-    gap: 12,
-  },
-  
-  storyContainer: {
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  
-  storyGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    padding: 3,
-    marginBottom: 6,
-  },
-  
-  storyInner: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 33,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  
-  storyAvatar: {
-    fontSize: 32,
-  },
-  
-  addStoryBadge: {
-    position: 'absolute',
-    bottom: 8,
-    right: -2,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#3A86FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-  },
-  
-  addStoryText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  
-  storyName: {
-    fontSize: 12,
-    color: theme.color.text.secondary,
-    marginTop: 4,
-  },
   
   feedContainer: {
     paddingHorizontal: theme.spacing.lg,
@@ -563,6 +399,21 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '700',
+  },
+  
+  promptBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.color.glass.light,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing.sm,
+  },
+  
+  promptBadgeText: {
+    color: theme.color.text.secondary,
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.medium,
   },
   
   postContent: {
@@ -669,103 +520,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   
-  floatingButton: {
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-  },
-  
-  floatingGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#8338EC',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  },
-  
-  floatingIcon: {
-    fontSize: 32,
-    color: 'white',
-    fontWeight: '300',
-  },
-  
-  createModal: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.lg,
-  },
-  
-  createCard: {
-    width: width - 40,
-    borderRadius: 24,
-  },
-  
-  createHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.lg,
-  },
-  
-  createTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.color.text.primary,
-  },
-  
-  closeButton: {
-    fontSize: 24,
-    color: theme.color.text.tertiary,
-  },
-  
-  createContent: {
-    flexDirection: 'row',
-    marginBottom: theme.spacing.lg,
-  },
-  
-  createAvatar: {
-    fontSize: 40,
-    marginRight: theme.spacing.md,
-  },
-  
-  createInput: {
-    flex: 1,
-    fontSize: 16,
-    color: theme.color.text.primary,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  
-  postButton: {
-    borderRadius: theme.radius.full,
-    overflow: 'hidden',
-  },
-  
-  postGradient: {
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  
-  postButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
-  },
 })

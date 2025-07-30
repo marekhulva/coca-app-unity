@@ -133,6 +133,23 @@ export const injectWebStyles = () => {
       height: 100%;
     }
     
+    /* Ensure modals stay within iPhone container */
+    #root > div {
+      position: relative !important;
+      z-index: 1;
+    }
+    
+    /* Modal fixes for web */
+    [data-react-native-modal] {
+      position: absolute !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 430px !important;
+      max-height: 932px !important;
+      border-radius: inherit !important;
+      overflow: hidden !important;
+    }
+    
     /* Backdrop filter support for glass effects */
     @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
       .glass-effect {

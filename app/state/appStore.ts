@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-interface User {
+export interface User {
   id: string
   name: string
   email: string
@@ -9,19 +9,20 @@ interface User {
   avatar?: string
 }
 
-interface PerformanceHabit {
+export interface PerformanceHabit {
   name: string
   time?: string
   reminder?: boolean
 }
 
-interface Milestone {
+export interface Milestone {
   name: string
   metric: string
   date: Date
+  completed?: boolean
 }
 
-interface Action {
+export interface Action {
   type: 'one-time' | 'commitment'
   name: string
   why?: string
@@ -30,7 +31,7 @@ interface Action {
   frequency?: string[]
 }
 
-interface UserGoal {
+export interface UserGoal {
   id: string
   title: string
   metric: string
@@ -42,7 +43,7 @@ interface UserGoal {
   createdAt: Date
 }
 
-interface UserAction {
+export interface UserAction {
   id: string
   goalId: string
   type: 'goal' | 'performance'
@@ -51,7 +52,7 @@ interface UserAction {
   completed?: boolean
 }
 
-interface FeedPost {
+export interface FeedPost {
   id: string
   userId: string
   userName: string
@@ -61,6 +62,8 @@ interface FeedPost {
   timestamp: Date
   reactions: { [emoji: string]: number }
   goalTitle?: string
+  promptId?: string
+  promptEmoji?: string
 }
 
 interface SMSAnswer {
@@ -105,6 +108,9 @@ interface AppState {
   smsAnswers: SMSAnswer[]
   actionReviewResults: { [actionId: string]: { completed: boolean; reason?: string } }
   
+  showPostComposer: boolean
+  selectedPromptId: string | null
+  
   setAppState: (state: 'setup' | 'main') => void
   setCurrentStep: (step: number) => void
   setCurrentScreen: (screen: 'social' | 'daily' | 'progress' | 'profile') => void
@@ -132,12 +138,18 @@ interface AppState {
   toggleAction: (actionId: string) => void
   handleReaction: (postId: string, emoji: string) => void
   handleShareAction: () => void
+  setSharePrivacy: (privacy: 'group' | 'private') => void
+  setShareNote: (note: string) => void
   
   openSMSFlow: () => void
   completeSMS: () => void
   nextActionOrStep: () => void
   
   finishSetup: () => void
+  
+  openPostComposer: (promptId: string | null) => void
+  closePostComposer: () => void
+  publishPost: (content: string) => void
 }
 
 const initialUser: User = {
@@ -209,6 +221,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentActionIndex: 0,
   smsAnswers: [],
   actionReviewResults: {},
+  
+  showPostComposer: false,
+  selectedPromptId: null,
   
   setAppState: (state) => set({ appState: state }),
   setCurrentStep: (step) => set({ currentStep: step }),
@@ -339,16 +354,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   handleShareAction: () => {
     const state = get()
     if (state.shareAction) {
+      // Update checked actions first
       set((prevState) => ({
         checkedActions: {
           ...prevState.checkedActions,
           [state.shareAction!.id]: true
         },
-        showShareModal: false,
-        shareAction: null,
-        shareNote: '',
       }))
       
+      // Handle group sharing
       if (state.sharePrivacy === 'group') {
         const newPost: FeedPost = {
           id: Date.now().toString(),
@@ -361,12 +375,24 @@ export const useAppStore = create<AppState>((set, get) => ({
           reactions: {},
         }
         
+        // Add post to feed
         set((prevState) => ({
           feedPosts: [newPost, ...prevState.feedPosts]
         }))
       }
+      
+      // Clear modal state separately
+      set({
+        showShareModal: false,
+        shareAction: null,
+        shareNote: '',
+        sharePrivacy: 'group', // Reset to default
+      })
     }
   },
+  
+  setSharePrivacy: (privacy) => set({ sharePrivacy: privacy }),
+  setShareNote: (note) => set({ shareNote: note }),
   
   openSMSFlow: () => set({ showSMSFlow: true, smsStep: 0, currentActionIndex: 0 }),
   
@@ -391,4 +417,33 @@ export const useAppStore = create<AppState>((set, get) => ({
   }),
   
   finishSetup: () => set({ appState: 'main', showGoalAnnouncement: false }),
+  
+  openPostComposer: (promptId) => set({ 
+    showPostComposer: true, 
+    selectedPromptId: promptId 
+  }),
+  
+  closePostComposer: () => set({ 
+    showPostComposer: false, 
+    selectedPromptId: null 
+  }),
+  
+  publishPost: (content) => {
+    const state = get()
+    
+    const newPost: FeedPost = {
+      id: Date.now().toString(),
+      userId: state.user.id,
+      userName: state.user.name,
+      userAvatar: state.user.avatar,
+      type: 'prompted',
+      content,
+      timestamp: new Date(),
+      reactions: {},
+    }
+    
+    set({
+      feedPosts: [newPost, ...state.feedPosts],
+    })
+  },
 }))

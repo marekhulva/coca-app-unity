@@ -10,12 +10,9 @@ import {
 } from 'react-native'
 import { theme } from '../themes/theme'
 
-let BlurView: any
-if (Platform.OS === 'web') {
-  BlurView = require('./BlurView.web').BlurView
-} else {
-  BlurView = require('expo-blur').BlurView
-}
+import { BlurView as WebBlurView } from './BlurView.web'
+
+const BlurView = Platform.OS === 'web' ? WebBlurView : require('expo-blur').BlurView
 
 interface ModalProps {
   visible: boolean
