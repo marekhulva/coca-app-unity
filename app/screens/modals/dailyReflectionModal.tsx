@@ -410,7 +410,7 @@ export const DailyReflectionModal: React.FC = () => {
             {reflectionStep === 'checkin' ? renderCheckInScreen() : renderJournalScreen()}
           </View>
         </SafeAreaView>
-      </View>
+      </TouchableOpacity>
     </Modal>
   )
 }
