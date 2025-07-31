@@ -387,16 +387,14 @@ export const DailyReflectionModal: React.FC = () => {
     <Modal
       visible={showDailyReflection}
       transparent
-      animationType="none"
+      animationType="slide"
       onRequestClose={closeDailyReflection}
     >
-      <View style={styles.backdrop}>
-        <LinearGradient
-          colors={theme.gradient.cosmic}
-          style={StyleSheet.absoluteFillObject}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
+      <TouchableOpacity 
+        style={styles.backdrop} 
+        activeOpacity={1} 
+        onPress={closeDailyReflection}
+      >
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
             {renderProgressIndicator()}
