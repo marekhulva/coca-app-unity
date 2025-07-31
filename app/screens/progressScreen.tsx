@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react'
+import React, { useMemo, useRef, useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { GlassCard } from '../components/GlassCard'
@@ -14,6 +15,7 @@ import { ProgressRing } from '../components/ProgressRing'
 import { ScreenLayout } from '../layouts/ScreenLayout'
 import { theme } from '../themes/theme'
 import { useAppStore } from '../state/appStore'
+import * as Haptics from 'expo-haptics'
 
 const { width } = Dimensions.get('window')
 
@@ -38,6 +40,8 @@ export const ProgressScreen: React.FC = () => {
 
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(50)).current
+  const floatAnim = useRef(new Animated.Value(0)).current
+  const [selectedStatIndex, setSelectedStatIndex] = useState<number | null>(null)
 
   useEffect(() => {
     Animated.parallel([
@@ -52,6 +56,22 @@ export const ProgressScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start()
+    
+    // Floating animation for stats
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
   }, [])
 
   const userStats = useMemo(() => {
@@ -101,7 +121,10 @@ export const ProgressScreen: React.FC = () => {
   const TabButton = ({ id, label, isActive }: { id: string; label: string; isActive: boolean }) => {
     const scaleAnim = useRef(new Animated.Value(1)).current
 
-    const handlePress = () => {
+    const handlePress = async () => {
+      if (Platform.OS !== 'web') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      }
       Animated.sequence([
         Animated.timing(scaleAnim, {
           toValue: 0.95,
@@ -139,9 +162,11 @@ export const ProgressScreen: React.FC = () => {
     )
   }
 
-  const StatCard = ({ value, label, gradient, delay }: any) => {
+  const StatCard = ({ value, label, gradient, delay, index }: any) => {
     const scaleAnim = useRef(new Animated.Value(0.8)).current
     const opacityAnim = useRef(new Animated.Value(0)).current
+    const bounceAnim = useRef(new Animated.Value(0)).current
+    const isSelected = selectedStatIndex === index
 
     useEffect(() => {
       Animated.parallel([
@@ -159,25 +184,77 @@ export const ProgressScreen: React.FC = () => {
         }),
       ]).start()
     }, [delay])
+    
+    useEffect(() => {
+      if (isSelected) {
+        Animated.spring(bounceAnim, {
+          toValue: 1,
+          friction: 3,
+          tension: 40,
+          useNativeDriver: true,
+        }).start()
+      } else {
+        Animated.timing(bounceAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start()
+      }
+    }, [isSelected])
 
     return (
-      <Animated.View style={[
-        styles.statCard,
-        {
-          transform: [{ scale: scaleAnim }],
-          opacity: opacityAnim,
-        },
-      ]}>
-        <LinearGradient
-          colors={gradient}
-          style={styles.statGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.statValue}>{value}</Text>
-        </LinearGradient>
-        <Text style={styles.statLabel}>{label}</Text>
-      </Animated.View>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={async () => {
+          if (Platform.OS !== 'web') {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+          }
+          setSelectedStatIndex(isSelected ? null : index)
+        }}
+      >
+        <Animated.View style={[
+          styles.statCard,
+          {
+            transform: [
+              { scale: scaleAnim },
+              {
+                translateY: Animated.multiply(
+                  floatAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -10],
+                  }),
+                  bounceAnim
+                ),
+              },
+            ],
+            opacity: opacityAnim,
+          },
+        ]}>
+          <Animated.View
+            style={[
+              styles.statGradientWrapper,
+              {
+                transform: [{
+                  scale: bounceAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.1],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={gradient}
+              style={styles.statGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.statValue}>{value}</Text>
+            </LinearGradient>
+          </Animated.View>
+          <Text style={[styles.statLabel, isSelected && styles.statLabelActive]}>{label}</Text>
+        </Animated.View>
+      </TouchableOpacity>
     )
   }
 
@@ -189,24 +266,28 @@ export const ProgressScreen: React.FC = () => {
           label="Completion" 
           gradient={theme.gradient.vibrant}
           delay={0}
+          index={0}
         />
         <StatCard 
           value={userStats.streak} 
           label="Day Streak" 
           gradient={theme.gradient.sunset}
           delay={100}
+          index={1}
         />
         <StatCard 
           value={userStats.completedActions} 
           label="Actions Done" 
           gradient={theme.gradient.aurora}
           delay={200}
+          index={2}
         />
         <StatCard 
           value={userStats.bestStreak} 
           label="Best Streak" 
           gradient={theme.gradient.cosmic}
           delay={300}
+          index={3}
         />
       </View>
 
@@ -230,7 +311,12 @@ export const ProgressScreen: React.FC = () => {
           >
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => setExpandedGoalId(isExpanded ? null : metric.goalId)}
+              onPress={async () => {
+                if (Platform.OS !== 'web') {
+                  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                }
+                setExpandedGoalId(isExpanded ? null : metric.goalId)
+              }}
             >
               <GlassCard
                 variant="light"
@@ -505,6 +591,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   
+  statGradientWrapper: {
+    borderRadius: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0 6px 24px rgba(0, 0, 0, 0.1)',
+      },
+    }),
+  },
+  
   statGradient: {
     width: 100,
     height: 100,
@@ -531,6 +635,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
+  statLabelActive: {
+    color: theme.color.primary,
+    fontWeight: '700',
+  },
+  
   sectionTitle: {
     fontSize: 24,
     fontWeight: '700',
@@ -541,6 +650,22 @@ const styles = StyleSheet.create({
   goalCard: {
     marginBottom: theme.spacing.lg,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.color.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 4px 20px rgba(255, 0, 110, 0.08)',
+      },
+    }),
   },
   
   goalHeader: {

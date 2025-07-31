@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -38,6 +38,8 @@ export const GoalSetupScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(50)).current
   const scaleAnim = useRef(new Animated.Value(0.9)).current
+  const progressAnim = useRef(new Animated.Value(0)).current
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     Animated.parallel([
@@ -59,6 +61,21 @@ export const GoalSetupScreen: React.FC = () => {
       }),
     ]).start()
   }, [])
+
+  // Update progress bar based on form completion
+  useEffect(() => {
+    let progress = 0
+    if (selectedGoal) progress += 0.25
+    if (goalMetric) progress += 0.25
+    if (goalDeadline) progress += 0.25
+    if (goalWhy) progress += 0.25
+
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 300,
+      useNativeDriver: false,
+    }).start()
+  }, [selectedGoal, goalMetric, goalDeadline, goalWhy, progressAnim])
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -182,8 +199,41 @@ export const GoalSetupScreen: React.FC = () => {
     )
   }
 
+  const handleLockInGoal = async () => {
+    setIsLoading(true)
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    lockInGoal()
+    setIsLoading(false)
+  }
+
   return (
     <ScreenLayout gradient={theme.gradient.aurora}>
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <Animated.View
+            style={[
+              styles.progressFill,
+              {
+                width: progressAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0%', '100%'],
+                }),
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={theme.gradient.vibrant}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+        </View>
+        <Text style={styles.stepIndicator}>Step 1 of 4</Text>
+      </View>
+      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -225,7 +275,6 @@ export const GoalSetupScreen: React.FC = () => {
                 placeholder="e.g., Run a marathon"
                 value={selectedGoal}
                 onChangeText={setSelectedGoal}
-                variant="glass"
               />
 
               <View style={styles.presetContainer}>
@@ -242,7 +291,7 @@ export const GoalSetupScreen: React.FC = () => {
                 placeholder="e.g., Complete 26.2 miles"
                 value={goalMetric}
                 onChangeText={setGoalMetric}
-                variant="glass"
+                hint="Be specific and measurable"
               />
 
               <DatePicker
@@ -260,7 +309,7 @@ export const GoalSetupScreen: React.FC = () => {
                 onChangeText={setGoalWhy}
                 multiline
                 numberOfLines={3}
-                variant="glass"
+                hint="This will help you stay motivated when things get tough"
               />
             </GlassCard>
           </Animated.View>
@@ -302,8 +351,9 @@ export const GoalSetupScreen: React.FC = () => {
               variant="solid"
               size="lg"
               fullWidth
-              onPress={lockInGoal}
+              onPress={handleLockInGoal}
               disabled={!selectedGoal || !goalMetric || !goalDeadline}
+              loading={isLoading}
               style={styles.continueButton}
             />
           </Animated.View>
@@ -316,6 +366,32 @@ export const GoalSetupScreen: React.FC = () => {
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
+  },
+  
+  progressContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+  },
+  
+  progressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: theme.spacing.xs,
+  },
+  
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  
+  stepIndicator: {
+    fontSize: theme.font.size.xs,
+    color: theme.color.text.secondary,
+    textAlign: 'center',
+    fontWeight: theme.font.weight.medium,
   },
   
   scrollContent: {

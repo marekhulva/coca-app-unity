@@ -6,6 +6,8 @@ import {
   StyleSheet,
   TextInputProps,
   TouchableOpacity,
+  Platform,
+  Animated,
 } from 'react-native'
 import { theme } from '../themes/theme'
 
@@ -23,7 +25,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   label,
   error,
   hint,
-  variant = 'default',
+  variant = 'glass',
   icon,
   rightIcon,
   onRightIconPress,
@@ -31,16 +33,36 @@ export const TextField: React.FC<TextFieldProps> = ({
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false)
+  const animatedScale = React.useRef(new Animated.Value(1)).current
+  
+  const handleFocus = () => {
+    setIsFocused(true)
+    Animated.spring(animatedScale, {
+      toValue: 1.02,
+      friction: 5,
+      useNativeDriver: true,
+    }).start()
+  }
+  
+  const handleBlur = () => {
+    setIsFocused(false)
+    Animated.spring(animatedScale, {
+      toValue: 1,
+      friction: 5,
+      useNativeDriver: true,
+    }).start()
+  }
 
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
       
-      <View style={[
+      <Animated.View style={[
         styles.inputContainer,
         styles[variant],
         isFocused && styles.focused,
         error && styles.error,
+        { transform: [{ scale: animatedScale }] },
       ]}>
         {icon && <View style={styles.iconLeft}>{icon}</View>}
         
@@ -52,8 +74,8 @@ export const TextField: React.FC<TextFieldProps> = ({
             style,
           ]}
           placeholderTextColor={theme.color.text.placeholder}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
         
@@ -66,7 +88,7 @@ export const TextField: React.FC<TextFieldProps> = ({
             {rightIcon}
           </TouchableOpacity>
         )}
-      </View>
+      </Animated.View>
       
       {(error || hint) && (
         <Text style={[styles.hint, error && styles.errorText]}>
@@ -104,13 +126,42 @@ const styles = StyleSheet.create({
   },
   
   glass: {
-    backgroundColor: theme.color.glass.light,
-    borderColor: theme.color.border.glass,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backdropFilter: 'blur(20px)',
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.color.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 4px 16px rgba(255, 0, 110, 0.1)',
+      },
+    }),
   },
   
   focused: {
     borderColor: theme.color.primary,
     borderWidth: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.color.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0 8px 24px rgba(255, 0, 110, 0.25)',
+      },
+    }),
   },
   
   error: {

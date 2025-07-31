@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react'
+import React, { useMemo, useRef, useEffect, useState } from 'react'
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  RefreshControl,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { GlassCard } from '../components/GlassCard'
@@ -35,6 +36,8 @@ export const DailyScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current
   const slideAnim = useRef(new Animated.Value(50)).current
   const scaleAnim = useRef(new Animated.Value(0.9)).current
+  const pulseAnim = useRef(new Animated.Value(1)).current
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     Animated.parallel([
@@ -55,6 +58,30 @@ export const DailyScreen: React.FC = () => {
         useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start()
+    
+    // Pulse animation for progress ring
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ])
+    ).start()
+  }, [])
+  
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true)
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false)
+    }, 1000)
   }, [])
 
   const progress = useMemo(() => {
@@ -86,6 +113,8 @@ export const DailyScreen: React.FC = () => {
   const renderAction = (action: typeof userActions[0], index: number) => {
     const isChecked = checkedActions[action.id] || false
     const animValue = useRef(new Animated.Value(0)).current
+    const checkAnim = useRef(new Animated.Value(isChecked ? 1 : 0)).current
+    const scaleAnim = useRef(new Animated.Value(1)).current
     
     useEffect(() => {
       Animated.timing(animValue, {
@@ -95,6 +124,15 @@ export const DailyScreen: React.FC = () => {
         useNativeDriver: Platform.OS !== 'web',
       }).start()
     }, [])
+    
+    useEffect(() => {
+      Animated.spring(checkAnim, {
+        toValue: isChecked ? 1 : 0,
+        friction: 4,
+        tension: 40,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start()
+    }, [isChecked])
     
     return (
       <Animated.View
@@ -113,23 +151,76 @@ export const DailyScreen: React.FC = () => {
       >
         <TouchableOpacity
           style={styles.actionItem}
-          onPress={() => toggleAction(action.id)}
-          activeOpacity={0.7}
+          onPress={() => {
+            Animated.sequence([
+              Animated.timing(scaleAnim, {
+                toValue: 0.95,
+                duration: 100,
+                useNativeDriver: Platform.OS !== 'web',
+              }),
+              Animated.spring(scaleAnim, {
+                toValue: 1,
+                friction: 4,
+                tension: 40,
+                useNativeDriver: Platform.OS !== 'web',
+              }),
+            ]).start()
+            toggleAction(action.id)
+          }}
+          activeOpacity={0.9}
         >
-          <View style={[
+          <Animated.View style={[
             styles.checkbox,
-            isChecked && styles.checkboxChecked,
+            {
+              transform: [
+                {
+                  scale: checkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 1.2],
+                  }),
+                },
+                {
+                  rotate: checkAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                },
+              ],
+            },
           ]}>
-            {isChecked && (
+            <Animated.View
+              style={[
+                StyleSheet.absoluteFillObject,
+                {
+                  opacity: checkAnim,
+                  transform: [{
+                    scale: checkAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  }],
+                },
+              ]}
+            >
               <LinearGradient
                 colors={theme.gradient.vibrant}
                 style={StyleSheet.absoluteFillObject}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               />
-            )}
-            <Text style={styles.checkmark}>{isChecked ? '✓' : ''}</Text>
-          </View>
+            </Animated.View>
+            <Animated.Text style={[
+              styles.checkmark,
+              {
+                opacity: checkAnim,
+                transform: [{
+                  scale: checkAnim,
+                }],
+              },
+            ]}>
+              ✓
+            </Animated.Text>
+          </Animated.View>
           
           <View style={styles.actionContent}>
             <Text style={[
@@ -165,6 +256,14 @@ export const DailyScreen: React.FC = () => {
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.color.primary]}
+            tintColor={theme.color.primary}
+          />
+        }
       >
         <Text style={styles.greeting}>Good morning, Alex! ☀️</Text>
         <Text style={styles.title}>Today's Mission</Text>
@@ -195,7 +294,7 @@ export const DailyScreen: React.FC = () => {
 
         <Animated.View style={[
           styles.progressContainer,
-          { transform: [{ scale: scaleAnim }] }
+          { transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }] }
         ]}>
           <GlassCard
             variant="light"
@@ -301,6 +400,20 @@ export const DailyScreen: React.FC = () => {
             </View>
           </LinearGradient>
         </TouchableOpacity>
+
+        <GlassButton
+          title="Complete All Today's Actions 🚀"
+          variant="solid"
+          gradient={theme.gradient.fire}
+          size="lg"
+          fullWidth
+          onPress={() => {
+            const allActions = userActions.filter(a => !checkedActions[a.id])
+            allActions.forEach(action => toggleAction(action.id))
+          }}
+          disabled={progress.overall === 100}
+          style={styles.completeAllButton}
+        />
 
         <View style={{ height: 100 }} />
       </Animated.ScrollView>
@@ -505,22 +618,39 @@ const styles = StyleSheet.create({
   actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 16,
-    padding: theme.spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    padding: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.color.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: '0 2px 12px rgba(255, 0, 110, 0.05)',
+      },
+    }),
   },
   
   checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: theme.color.border.default,
+    borderColor: 'rgba(255, 0, 110, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: theme.spacing.md,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   
   checkboxChecked: {
@@ -528,9 +658,10 @@ const styles = StyleSheet.create({
   },
   
   checkmark: {
-    fontSize: 16,
+    fontSize: 18,
     color: 'white',
     fontWeight: 'bold',
+    zIndex: 1,
   },
   
   actionContent: {
@@ -549,15 +680,47 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   
+  completeAllButton: {
+    marginTop: theme.spacing.xl,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#F83600',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 12,
+      },
+      web: {
+        boxShadow: '0 8px 32px rgba(248, 54, 0, 0.3)',
+      },
+    }),
+  },
+  
   actionSchedule: {
     fontSize: 13,
     color: theme.color.text.tertiary,
   },
   
   actionType: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: theme.radius.full,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      },
+    }),
   },
   
   actionTypeText: {

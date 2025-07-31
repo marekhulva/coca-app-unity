@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
 import {
   TouchableOpacity,
   Text,
@@ -6,9 +6,12 @@ import {
   Animated,
   View,
   TouchableOpacityProps,
+  Platform,
+  ActivityIndicator,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { theme } from '../themes/theme'
+import * as Haptics from 'expo-haptics'
 
 interface GlassButtonProps extends TouchableOpacityProps {
   title: string
@@ -17,6 +20,8 @@ interface GlassButtonProps extends TouchableOpacityProps {
   size?: 'sm' | 'md' | 'lg'
   fullWidth?: boolean
   icon?: React.ReactNode
+  loading?: boolean
+  haptic?: boolean
 }
 
 export const GlassButton: React.FC<GlassButtonProps> = ({
@@ -29,24 +34,66 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
   style,
   onPress,
   disabled,
+  loading = false,
+  haptic = true,
   ...props
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current
+  const opacityAnim = useRef(new Animated.Value(1)).current
+  const rotateAnim = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (loading) {
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        })
+      ).start()
+    } else {
+      rotateAnim.stopAnimation()
+      rotateAnim.setValue(0)
+    }
+  }, [loading, rotateAnim])
 
   const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-    }).start()
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 0.95,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0.8,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start()
   }
 
   const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start()
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }
+
+  const handlePress = async (event: any) => {
+    if (haptic && Platform.OS !== 'web') {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    }
+    onPress?.(event)
   }
 
   const sizeStyles = {
@@ -57,19 +104,55 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
 
   const currentSize = sizeStyles[size]
 
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  })
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <Animated.View style={{ transform: [{ rotate: spin }] }}>
+          <ActivityIndicator 
+            color={variant === 'outline' ? theme.color.primary : 'white'} 
+            size="small" 
+          />
+        </Animated.View>
+      )
+    }
+
+    return (
+      <View style={styles.content}>
+        {icon && <View style={styles.icon}>{icon}</View>}
+        <Text 
+          style={[
+            styles.text, 
+            variant === 'outline' && styles.outlineText,
+            { fontSize: currentSize.fontSize }
+          ]}
+        >
+          {title}
+        </Text>
+      </View>
+    )
+  }
+
   return (
     <Animated.View
       style={[
-        { transform: [{ scale: scaleAnim }] },
+        { 
+          transform: [{ scale: scaleAnim }],
+          opacity: opacityAnim,
+        },
         fullWidth && styles.fullWidth,
         style,
       ]}
     >
       <TouchableOpacity
-        onPress={onPress}
+        onPress={handlePress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        disabled={disabled}
+        disabled={disabled || loading}
         activeOpacity={0.9}
         {...props}
       >
@@ -84,12 +167,7 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
               disabled && styles.disabled,
             ]}
           >
-            <View style={styles.content}>
-              {icon && <View style={styles.icon}>{icon}</View>}
-              <Text style={[styles.text, { fontSize: currentSize.fontSize }]}>
-                {title}
-              </Text>
-            </View>
+            {renderContent()}
           </LinearGradient>
         ) : variant === 'glass' ? (
           <View
@@ -104,12 +182,7 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
               colors={['rgba(255, 255, 255, 0.2)', 'rgba(255, 255, 255, 0.1)']}
               style={StyleSheet.absoluteFillObject}
             />
-            <View style={styles.content}>
-              {icon && <View style={styles.icon}>{icon}</View>}
-              <Text style={[styles.text, { fontSize: currentSize.fontSize }]}>
-                {title}
-              </Text>
-            </View>
+            {renderContent()}
           </View>
         ) : (
           <View
@@ -127,18 +200,7 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
               style={styles.outlineGradient}
             />
             <View style={styles.outlineInner}>
-              <View style={styles.content}>
-                {icon && <View style={styles.icon}>{icon}</View>}
-                <Text
-                  style={[
-                    styles.text,
-                    styles.outlineText,
-                    { fontSize: currentSize.fontSize },
-                  ]}
-                >
-                  {title}
-                </Text>
-              </View>
+              {renderContent()}
             </View>
           </View>
         )}
