@@ -4,8 +4,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Modal,
+  TouchableOpacity,
+  SafeAreaView,
+  Platform,
 } from 'react-native'
-import { Modal } from '../../components/Modal'
 import { Button } from '../../components/Button'
 import { TextField } from '../../components/TextField'
 import { GlassCard } from '../../components/GlassCard'
@@ -217,17 +220,122 @@ export const DailyReviewModal: React.FC = () => {
   return (
     <Modal
       visible={showSMSFlow}
-      onClose={completeSMS}
-      title="Daily Review"
+      transparent
+      animationType="slide"
+      onRequestClose={completeSMS}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {renderContent()}
-      </ScrollView>
+      <TouchableOpacity 
+        style={styles.backdrop} 
+        activeOpacity={1} 
+        onPress={completeSMS}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <TouchableOpacity activeOpacity={1} style={styles.modalWrapper}>
+            <View style={styles.modalContent}>
+              <View style={styles.header}>
+                <Text style={styles.title}>Daily Review</Text>
+                <TouchableOpacity onPress={completeSMS} style={styles.closeButton}>
+                  <Text style={styles.closeText}>×</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView 
+                style={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+                {renderContent()}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </TouchableOpacity>
     </Modal>
   )
 }
 
 const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  
+  safeArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
+    maxWidth: Platform.OS === 'web' ? 500 : '100%',
+    width: '100%',
+  },
+  
+  modalWrapper: {
+    width: '100%',
+  },
+  
+  modalContent: {
+    backgroundColor: theme.color.background.primary,
+    borderTopLeftRadius: theme.radius.xxl,
+    borderTopRightRadius: theme.radius.xxl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+    minHeight: 300,
+    maxHeight: '80%',
+    ...Platform.select({
+      ios: {
+        ...theme.shadow.xl,
+        maxWidth: 400,
+        width: '100%',
+        alignSelf: 'center',
+      },
+      android: {
+        elevation: 5,
+        maxWidth: 400,
+        width: '100%',
+        alignSelf: 'center',
+      },
+      web: {
+        boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.1)',
+        maxWidth: 400,
+        alignSelf: 'center',
+        width: '100%',
+      },
+    }),
+  },
+  
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  
+  title: {
+    fontSize: theme.font.size.xl,
+    fontWeight: theme.font.weight.bold,
+    color: theme.color.text.primary,
+  },
+  
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.color.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  closeText: {
+    fontSize: theme.font.size.xl,
+    color: theme.color.text.secondary,
+    fontWeight: theme.font.weight.light,
+  },
+  
+  scrollContent: {
+    flex: 1,
+  },
+  
   content: {
     paddingVertical: theme.spacing.md,
   },

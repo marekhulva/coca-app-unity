@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { GlassCard } from '../components/GlassCard'
@@ -37,18 +38,18 @@ export const DailyScreen: React.FC = () => {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 8,
         tension: 40,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start()
   }, [])
@@ -88,7 +89,7 @@ export const DailyScreen: React.FC = () => {
         toValue: 1,
         duration: 300,
         delay: index * 50,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }).start()
     }, [])
     
@@ -283,6 +284,65 @@ export const DailyScreen: React.FC = () => {
 
         <View style={{ height: 100 }} />
       </Animated.ScrollView>
+      
+      {/* Test buttons for debugging modals */}
+      <View style={{
+        position: 'absolute',
+        bottom: 100,
+        right: 20,
+        gap: 10,
+      }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#FF006E',
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+            borderRadius: 25,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+            marginBottom: 10,
+          }}
+          onPress={() => {
+            useAppStore.setState({
+              shareAction: {
+                id: 'test-action',
+                goalId: 'test-goal',
+                type: 'goal',
+                name: 'Test Action for Debugging',
+              },
+              showShareModal: true,
+            })
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Test Share Modal</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#8338EC',
+            paddingHorizontal: 20,
+            paddingVertical: 12,
+            borderRadius: 25,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+          onPress={() => {
+            useAppStore.setState({
+              showSMSFlow: true,
+              smsStep: 0,
+              currentActionIndex: 0,
+            })
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Test Daily Review</Text>
+        </TouchableOpacity>
+      </View>
       
       <ShareActionModal />
     </ScreenLayout>

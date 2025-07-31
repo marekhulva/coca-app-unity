@@ -360,45 +360,36 @@ export const useAppStore = create<AppState>((set, get) => ({
     const privacy = state.sharePrivacy
     const note = state.shareNote
     
-    // First, mark the action as completed
+    // Create new post first if sharing with group
+    let newPost: FeedPost | null = null
+    if (privacy === 'group') {
+      newPost = {
+        id: Date.now().toString(),
+        userId: state.user.id,
+        userName: state.user.name,
+        userAvatar: state.user.avatar,
+        type: 'checkin',
+        content: note || `Completed: ${actionName}`,
+        timestamp: new Date(),
+        reactions: {},
+      }
+    }
+    
+    // Update all state at once
     set((prevState) => ({
+      // Mark action as completed
       checkedActions: {
         ...prevState.checkedActions,
         [actionId]: true
       },
+      // Add new post if sharing with group
+      feedPosts: newPost ? [newPost, ...prevState.feedPosts] : prevState.feedPosts,
+      // Clear modal state
+      showShareModal: false,
+      shareAction: null,
+      shareNote: '',
+      sharePrivacy: 'group',
     }))
-    
-    // Then handle group sharing if needed
-    if (privacy === 'group') {
-      // Use setTimeout to ensure state updates don't conflict
-      setTimeout(() => {
-        const currentState = get()
-        const newPost: FeedPost = {
-          id: Date.now().toString(),
-          userId: currentState.user.id,
-          userName: currentState.user.name,
-          userAvatar: currentState.user.avatar,
-          type: 'checkin',
-          content: note || `Completed: ${actionName}`,
-          timestamp: new Date(),
-          reactions: {},
-        }
-        
-        set((prevState) => ({
-          feedPosts: [newPost, ...prevState.feedPosts]
-        }))
-      }, 50)
-    }
-    
-    // Finally, clear modal state with a slight delay
-    setTimeout(() => {
-      set({
-        showShareModal: false,
-        shareAction: null,
-        shareNote: '',
-        sharePrivacy: 'group',
-      })
-    }, 100)
   },
   
   setSharePrivacy: (privacy) => set({ sharePrivacy: privacy }),

@@ -7,6 +7,7 @@ import {
   Platform,
   Modal,
   SafeAreaView,
+  ScrollView,
 } from 'react-native'
 import { GlassButton } from '../../components/GlassButton'
 import { TextField } from '../../components/TextField'
@@ -41,7 +42,6 @@ export const ShareActionModal: React.FC = () => {
       transparent
       animationType="slide"
       onRequestClose={handleClose}
-      presentationStyle={Platform.OS === 'ios' ? 'pageSheet' : 'fullScreen'}
     >
       <TouchableOpacity 
         style={styles.backdrop} 
@@ -58,75 +58,79 @@ export const ShareActionModal: React.FC = () => {
                 </TouchableOpacity>
               </View>
               
-              <View style={styles.content}>
-        <GlassCard variant="light" padding="md" style={styles.actionCard}>
-          <Text style={styles.actionLabel}>Completed Action</Text>
-          <Text style={styles.actionName}>{shareAction.name}</Text>
-        </GlassCard>
+              <ScrollView 
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+                <GlassCard variant="light" padding="md" style={styles.actionCard}>
+                  <Text style={styles.actionLabel}>Completed Action</Text>
+                  <Text style={styles.actionName}>{shareAction.name}</Text>
+                </GlassCard>
 
-        <Text style={styles.sectionTitle}>Share with:</Text>
-        
-        <View style={styles.privacyOptions}>
-          <TouchableOpacity
-            style={[
-              styles.privacyButton,
-              sharePrivacy === 'group' && styles.privacyButtonActive
-            ]}
-            onPress={() => setSharePrivacy('group')}
-          >
-            <Text style={[
-              styles.privacyButtonText,
-              sharePrivacy === 'group' && styles.privacyButtonTextActive
-            ]}>
-              Share with Group
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.privacyButton,
-              sharePrivacy === 'private' && styles.privacyButtonActive
-            ]}
-            onPress={() => setSharePrivacy('private')}
-          >
-            <Text style={[
-              styles.privacyButtonText,
-              sharePrivacy === 'private' && styles.privacyButtonTextActive
-            ]}>
-              Keep Private
-            </Text>
-          </TouchableOpacity>
-        </View>
+                <Text style={styles.sectionTitle}>Share with:</Text>
+                
+                <View style={styles.privacyOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.privacyButton,
+                      sharePrivacy === 'group' && styles.privacyButtonActive
+                    ]}
+                    onPress={() => setSharePrivacy('group')}
+                  >
+                    <Text style={[
+                      styles.privacyButtonText,
+                      sharePrivacy === 'group' && styles.privacyButtonTextActive
+                    ]}>
+                      Share with Group
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.privacyButton,
+                      sharePrivacy === 'private' && styles.privacyButtonActive
+                    ]}
+                    onPress={() => setSharePrivacy('private')}
+                  >
+                    <Text style={[
+                      styles.privacyButtonText,
+                      sharePrivacy === 'private' && styles.privacyButtonTextActive
+                    ]}>
+                      Keep Private
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-        {sharePrivacy === 'group' && (
-          <TextField
-            placeholder="Add a note (optional)"
-            value={shareNote}
-            onChangeText={setShareNote}
-            multiline
-            numberOfLines={3}
-            variant="glass"
-            style={styles.noteField}
-          />
-        )}
+                {sharePrivacy === 'group' && (
+                  <TextField
+                    placeholder="Add a note (optional)"
+                    value={shareNote}
+                    onChangeText={setShareNote}
+                    multiline
+                    numberOfLines={3}
+                    variant="glass"
+                    style={styles.noteField}
+                  />
+                )}
 
-        <View style={styles.footer}>
-          <GlassButton
-            title="Cancel"
-            variant="outline"
-            size="lg"
-            onPress={handleClose}
-            style={styles.footerButton}
-          />
-          <GlassButton
-            title="Complete"
-            variant="solid"
-            gradient={theme.gradient.vibrant}
-            size="lg"
-            onPress={handleShareAction}
-            style={styles.footerButton}
-          />
-        </View>
-              </View>
+                <View style={styles.footer}>
+                  <GlassButton
+                    title="Cancel"
+                    variant="outline"
+                    size="lg"
+                    onPress={handleClose}
+                    style={styles.footerButton}
+                  />
+                  <GlassButton
+                    title="Complete"
+                    variant="solid"
+                    gradient={theme.gradient.vibrant}
+                    size="lg"
+                    onPress={handleShareAction}
+                    style={styles.footerButton}
+                  />
+                </View>
+              </ScrollView>
             </View>
           </TouchableOpacity>
         </SafeAreaView>
@@ -159,8 +163,14 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.lg,
     paddingBottom: theme.spacing.xl,
     minHeight: 400,
+    maxHeight: '90%',
     ...Platform.select({
-      ios: theme.shadow.xl,
+      ios: {
+        ...theme.shadow.xl,
+        maxWidth: 500,
+        width: '100%',
+        alignSelf: 'center',
+      },
       web: {
         boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.1)',
         maxWidth: 430,
@@ -198,6 +208,7 @@ const styles = StyleSheet.create({
     fontWeight: theme.font.weight.light,
   },
   content: {
+    flex: 1,
     paddingVertical: theme.spacing.md,
   },
   

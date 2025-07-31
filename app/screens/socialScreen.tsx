@@ -15,10 +15,155 @@ import { PromptCarousel } from '../components/PromptCarousel'
 import { QuickCompose } from '../components/QuickCompose'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { theme } from '../themes/theme'
-import { useAppStore } from '../state/appStore'
+import { useAppStore, FeedPost } from '../state/appStore'
 import { Prompt } from '../constants/prompts'
 
 const { width } = Dimensions.get('window')
+
+interface PostItemProps {
+  post: FeedPost
+  index: number
+  onReaction: (postId: string, emoji: string) => void
+}
+
+const PostItem: React.FC<PostItemProps> = ({ post, index, onReaction }) => {
+  const animatedValue = useRef(new Animated.Value(0)).current
+  
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: 1,
+      duration: 500,
+      delay: index * 100,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start()
+  }, [index])
+
+  const scale = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.9, 1],
+  })
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  })
+  
+  return (
+    <Animated.View
+      style={[
+        styles.postWrapper,
+        {
+          opacity,
+          transform: [{ scale }],
+        },
+      ]}
+    >
+      <GlassCard
+        variant="light"
+        intensity={90}
+        padding="lg"
+        style={styles.postCard}
+      >
+        <View style={styles.postHeader}>
+          <View style={styles.userInfo}>
+            <View style={styles.avatarContainer}>
+              <LinearGradient
+                colors={['#FF006E', '#8338EC']}
+                style={styles.avatarGradient}
+              >
+                <Text style={styles.avatar}>{post.userAvatar}</Text>
+              </LinearGradient>
+            </View>
+            <View>
+              <Text style={styles.userName}>{post.userName}</Text>
+              <Text style={styles.timestamp}>
+                {new Date(post.timestamp).toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.moreButton}>
+            <Text style={styles.moreIcon}>•••</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {post.type === 'goal_announcement' && (
+          <LinearGradient
+            colors={['#FF006E', '#8338EC']}
+            style={styles.goalBadge}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.goalBadgeText}>🎯 New Goal</Text>
+          </LinearGradient>
+        )}
+        
+        {post.type === 'prompted' && post.promptId && (
+          <View style={styles.promptBadge}>
+            <Text style={styles.promptBadgeText}>
+              {post.promptEmoji} {post.promptId.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}
+            </Text>
+          </View>
+        )}
+        
+        <Text style={styles.postContent}>{post.content}</Text>
+        
+        {post.goalTitle && (
+          <View style={styles.goalContainer}>
+            <LinearGradient
+              colors={['rgba(255, 0, 110, 0.1)', 'rgba(131, 56, 236, 0.1)']}
+              style={styles.goalGradient}
+            >
+              <Text style={styles.goalTitle}>{post.goalTitle}</Text>
+              <View style={styles.goalProgress}>
+                <View style={styles.progressBar}>
+                  <LinearGradient
+                    colors={['#FF006E', '#8338EC']}
+                    style={[styles.progressFill, { width: '0%' }]}
+                  />
+                </View>
+                <Text style={styles.progressText}>Day 0</Text>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+        
+        <View style={styles.divider} />
+        
+        <View style={styles.reactionsContainer}>
+          <View style={styles.reactions}>
+            {Object.entries(post.reactions).map(([emoji, count]) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.reactionPill}
+                onPress={() => onReaction(post.id, emoji)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.reactionEmoji}>{emoji}</Text>
+                <Text style={styles.reactionCount}>{count}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          <View style={styles.actionButtons}>
+            {['🔥', '💪', '❤️', '🎯'].map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.actionButton}
+                onPress={() => onReaction(post.id, emoji)}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.actionEmoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </GlassCard>
+    </Animated.View>
+  )
+}
 
 export const SocialScreen: React.FC = () => {
   const { 
@@ -36,7 +181,7 @@ export const SocialScreen: React.FC = () => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start()
   }, [])
 
@@ -53,145 +198,6 @@ export const SocialScreen: React.FC = () => {
   })
 
 
-  const renderPost = (post: typeof feedPosts[0], index: number) => {
-    const animatedValue = useRef(new Animated.Value(0)).current
-    
-    useEffect(() => {
-      Animated.timing(animatedValue, {
-        toValue: 1,
-        duration: 500,
-        delay: index * 100,
-        useNativeDriver: true,
-      }).start()
-    }, [])
-
-    const scale = animatedValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.9, 1],
-    })
-
-    const opacity = animatedValue.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 1],
-    })
-    
-    return (
-      <Animated.View
-        key={post.id}
-        style={[
-          styles.postWrapper,
-          {
-            opacity,
-            transform: [{ scale }],
-          },
-        ]}
-      >
-        <GlassCard
-          variant="light"
-          intensity={90}
-          padding="lg"
-          style={styles.postCard}
-        >
-          <View style={styles.postHeader}>
-            <View style={styles.userInfo}>
-              <View style={styles.avatarContainer}>
-                <LinearGradient
-                  colors={['#FF006E', '#8338EC']}
-                  style={styles.avatarGradient}
-                >
-                  <Text style={styles.avatar}>{post.userAvatar}</Text>
-                </LinearGradient>
-              </View>
-              <View>
-                <Text style={styles.userName}>{post.userName}</Text>
-                <Text style={styles.timestamp}>
-                  {new Date(post.timestamp).toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.moreButton}>
-              <Text style={styles.moreIcon}>•••</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {post.type === 'goal_announcement' && (
-            <LinearGradient
-              colors={['#FF006E', '#8338EC']}
-              style={styles.goalBadge}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.goalBadgeText}>🎯 New Goal</Text>
-            </LinearGradient>
-          )}
-          
-          {post.type === 'prompted' && post.promptId && (
-            <View style={styles.promptBadge}>
-              <Text style={styles.promptBadgeText}>
-                {post.promptEmoji} {post.promptId.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}
-              </Text>
-            </View>
-          )}
-          
-          <Text style={styles.postContent}>{post.content}</Text>
-          
-          {post.goalTitle && (
-            <View style={styles.goalContainer}>
-              <LinearGradient
-                colors={['rgba(255, 0, 110, 0.1)', 'rgba(131, 56, 236, 0.1)']}
-                style={styles.goalGradient}
-              >
-                <Text style={styles.goalTitle}>{post.goalTitle}</Text>
-                <View style={styles.goalProgress}>
-                  <View style={styles.progressBar}>
-                    <LinearGradient
-                      colors={['#FF006E', '#8338EC']}
-                      style={[styles.progressFill, { width: '0%' }]}
-                    />
-                  </View>
-                  <Text style={styles.progressText}>Day 0</Text>
-                </View>
-              </LinearGradient>
-            </View>
-          )}
-          
-          <View style={styles.divider} />
-          
-          <View style={styles.reactionsContainer}>
-            <View style={styles.reactions}>
-              {Object.entries(post.reactions).map(([emoji, count]) => (
-                <TouchableOpacity
-                  key={emoji}
-                  style={styles.reactionPill}
-                  onPress={() => handleReaction(post.id, emoji)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.reactionEmoji}>{emoji}</Text>
-                  <Text style={styles.reactionCount}>{count}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            <View style={styles.actionButtons}>
-              {['🔥', '💪', '❤️', '🎯'].map((emoji) => (
-                <TouchableOpacity
-                  key={emoji}
-                  style={styles.actionButton}
-                  onPress={() => handleReaction(post.id, emoji)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={styles.actionEmoji}>{emoji}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </GlassCard>
-      </Animated.View>
-    )
-  }
 
   return (
     <View style={styles.container}>
@@ -232,7 +238,7 @@ export const SocialScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
+            { useNativeDriver: Platform.OS !== 'web' }
           )}
           scrollEventThrottle={16}
           style={{ opacity: fadeAnim }}
@@ -248,7 +254,14 @@ export const SocialScreen: React.FC = () => {
           />
           
           <View style={styles.feedContainer}>
-            {feedPosts.map((post, index) => renderPost(post, index))}
+            {feedPosts.map((post, index) => (
+              <PostItem 
+                key={post.id} 
+                post={post} 
+                index={index} 
+                onReaction={handleReaction}
+              />
+            ))}
           </View>
           
           <View style={{ height: 100 }} />
