@@ -14,15 +14,22 @@
 
 ## Project Overview
 
-**Coca App Unity** is a goal-tracking and habit-building React Native Web application designed to help users achieve their ambitions through structured goal setting, daily actions, and community support.
+**Coca App Unity** is a goal-tracking and habit-building React Native application designed to help users achieve their ambitions through structured goal setting, daily actions, and community support.
+
+### 🎯 Deployment Target
+**PRIMARY**: iOS App Store deployment
+- The app MUST maintain 100% iOS compatibility
+- All features must work on physical iPhone devices
+- Web and Android are secondary targets
 
 ### Tech Stack
-- **Framework**: React Native Web with Expo
+- **Framework**: React Native with Expo
 - **Language**: TypeScript
 - **State Management**: Zustand
 - **Navigation**: React Navigation
-- **Styling**: Custom theme system with glass morphism design
-- **Platform**: Web (with mobile-ready architecture)
+- **Styling**: Custom theme system with glass morphism design (no Tailwind/NativeWind)
+- **Platforms**: iOS (primary), Android, Web
+- **Components**: React Native built-in components only (no web-specific components)
 
 ## Architecture Philosophy
 
@@ -45,10 +52,14 @@ Unity/
 │   │   ├── GlassButton.tsx
 │   │   ├── GlassCard.tsx
 │   │   ├── ProgressRing.tsx
+│   │   ├── TextField.tsx
 │   │   └── ...
 │   ├── screens/            # Screen components
 │   │   ├── onboarding/     # Onboarding flow screens
-│   │   ├── modals/         # Modal screens
+│   │   ├── modals/         # Modal screens (using React Native Modal)
+│   │   │   ├── shareActionModal.tsx
+│   │   │   ├── dailyReviewModal.tsx
+│   │   │   └── goalAnnouncementModal.tsx
 │   │   ├── dailyScreen.tsx
 │   │   ├── socialScreen.tsx
 │   │   ├── progressScreen.tsx
@@ -60,11 +71,13 @@ Unity/
 │   ├── state/              # State management
 │   │   └── appStore.ts
 │   ├── themes/             # Design system
-│   │   └── theme.ts
+│   │   ├── theme.ts
+│   │   └── theme.matrix.ts
 │   ├── constants/          # App constants
 │   └── utils/              # Utility functions
 ├── App.tsx                 # Root component
 ├── a.md                    # Architecture manifesto
+├── ARCHITECTURE.md         # This file
 └── package.json
 ```
 
@@ -145,6 +158,7 @@ completeSetup: () => set((state) => ({
    - No business logic
    - Purely presentational
    - Examples: Button, TextField, Card
+   - NOTE: Custom Modal wrappers (Modal.tsx, ModalPortal.tsx) have been removed in favor of React Native's built-in Modal
 
 2. **Screen Components** (`app/screens/`)
    - Full page views
@@ -158,9 +172,11 @@ completeSetup: () => set((state) => ({
    - Examples: ScreenLayout (gradient background + safe area)
 
 4. **Modal Components** (`app/screens/modals/`)
-   - Overlay screens
-   - Specific user flows
-   - Examples: ShareActionModal, DailyReviewModal
+   - **IMPORTANT**: Always built using React Native's built-in Modal component
+   - Never create custom modal implementations
+   - Consistent bottom-sheet style with glass morphism
+   - Platform-specific styling and constraints
+   - Examples: ShareActionModal, DailyReviewModal, GoalAnnouncementModal
 
 ### Component Patterns
 
@@ -438,6 +454,16 @@ interface Milestone {
 
 ## Development Guidelines
 
+### 🚨 iOS Compatibility Requirements
+
+**EVERY new feature MUST be iOS-compatible for App Store deployment**
+
+Before implementing ANY feature:
+1. Check if all dependencies support iOS
+2. Test on iOS simulator/device
+3. Ensure no web-only APIs are used
+4. Verify gesture handlers work on touch devices
+
 ### Adding New Features
 
 1. **New Screen**
@@ -446,6 +472,7 @@ interface Milestone {
    // 2. Add to navigation in appNavigator.tsx
    // 3. Add state management in appStore.ts
    // 4. Use ScreenLayout for consistency
+   // 5. TEST ON iOS SIMULATOR
    ```
 
 2. **New Component**
@@ -454,6 +481,7 @@ interface Milestone {
    // 2. Use theme tokens, no hardcoded values
    // 3. Make it reusable and testable
    // 4. Add TypeScript interfaces
+   // 5. Ensure iOS compatibility (no web-only features)
    ```
 
 3. **New State**
@@ -462,6 +490,7 @@ interface Milestone {
    // 2. Add initial value
    // 3. Create setter action
    // 4. Keep state minimal
+   // 5. Consider iOS app lifecycle
    ```
 
 ### Best Practices
@@ -489,8 +518,8 @@ interface Milestone {
 
 3. **Animation performance**
    ```typescript
-   // Always use native driver when possible
-   useNativeDriver: true
+   // Always use native driver when possible on native platforms
+   useNativeDriver: Platform.OS !== 'web'
    ```
 
 4. **Component composition**
@@ -502,6 +531,48 @@ interface Milestone {
      </GlassCard>
    </ScreenLayout>
    ```
+
+5. **Modal implementation**
+   ```typescript
+   // Always use React Native's Modal component
+   <Modal
+     visible={showModal}
+     transparent
+     animationType="slide"
+     onRequestClose={handleClose}
+   >
+     {/* Modal content */}
+   </Modal>
+   
+   // Ensure modals fit within viewport
+   modalContent: {
+     maxHeight: '90%',
+     // Platform-specific constraints
+   }
+   ```
+
+### ❌ Prohibited Patterns (iOS Compatibility)
+
+**NEVER use these patterns without proper Platform checks:**
+```typescript
+// ❌ BAD - Will crash on iOS
+document.getElementById('myId')
+window.localStorage.setItem('key', 'value')
+element.style.display = 'none'
+
+// ✅ GOOD - Platform safe
+if (Platform.OS === 'web') {
+  // Web-only code here
+}
+```
+
+**NEVER use these libraries/features:**
+- Web-only npm packages
+- CSS modules or styled-components
+- Direct DOM manipulation
+- Browser-specific APIs (localStorage, sessionStorage, etc.)
+- Web workers
+- Service workers
 
 ### Future Considerations
 
@@ -519,6 +590,12 @@ interface Milestone {
    - All visuals in theme.ts
    - Easy to swap entire design system
    - No hardcoded styles in components
+
+4. **App Store Deployment**
+   - iOS app signing and certificates
+   - Apple Developer Program membership
+   - App Store review guidelines compliance
+   - iOS-specific permissions handling
 
 ## Quick Reference
 
@@ -540,6 +617,28 @@ npm start          # Start Expo
 npm run web        # Start web version
 npm run build:web  # Build for production
 ```
+
+### Important Architecture Decisions
+
+1. **React Hooks Rules**: Always extract components when using hooks inside mapped functions to avoid "Rendered more hooks than during the previous render" errors
+   ```typescript
+   // Bad: Hooks inside map
+   items.map(item => {
+     const [state] = useState() // ERROR!
+   })
+   
+   // Good: Extract component
+   const ItemComponent = ({ item }) => {
+     const [state] = useState() // OK!
+   }
+   items.map(item => <ItemComponent item={item} />)
+   ```
+
+2. **Modal Architecture**: All modals use React Native's built-in Modal component for consistency and proper viewport handling
+
+3. **State Updates**: Avoid race conditions by updating all related state atomically in Zustand
+
+4. **Styling Approach**: Custom theme system with design tokens (not using Tailwind/NativeWind despite being in dependencies)
 
 ---
 

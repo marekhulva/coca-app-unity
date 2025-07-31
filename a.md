@@ -7,11 +7,13 @@ This document defines the official development and modification rules for the Co
 ## 🔧 Core Tech Stack
 - **Framework**: React Native (with Expo)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS (via NativeWind)
+- **Styling**: Custom Theme System (centralized design tokens)
 - **Navigation**: React Navigation
-- **State Management**: Zustand (or Context API for simple needs)
+- **State Management**: Zustand
 - **Theming**: Centralized theme tokens (colors, spacing, radius, gradients, shadows)
 - **Architecture Pattern**: Atomic Design
+- **Target Platforms**: iOS (AppStore), Android, and Web
+- **Primary Target**: iOS/iPhone for AppStore deployment
 
 ---
 
@@ -103,6 +105,49 @@ This app is built to scale visually, technically, and structurally. It is:
 - Easy to test
 - Easy to hand off
 - Easy to grow to 500k+ users
+
+---
+
+## 🎨 Platform Component Guidelines
+
+### 🚨 iOS/AppStore Deployment Requirements
+**CRITICAL**: This app will be deployed to the Apple App Store. Every component and feature MUST be iOS-compatible.
+
+Before implementing ANY feature, ask yourself:
+1. Will this work on a physical iPhone?
+2. Does this use any web-only APIs?
+3. Have I properly wrapped platform-specific code?
+
+### Modal Implementation
+- **Always use React Native's built-in Modal component** for overlays and popups
+- Custom modal implementations should be avoided for consistency and platform compatibility
+- Modal positioning and constraints are handled via StyleSheet with platform-specific rules
+- Use `maxHeight: '90%'` constraint to ensure modals fit within viewport on all devices
+
+### Platform-Specific Code
+**MANDATORY RULES**:
+- **NEVER** use web-only APIs (document, window, localStorage) without Platform checks
+- **ALWAYS** wrap web-specific code in `if (Platform.OS === 'web')` 
+- **ALWAYS** provide iOS fallbacks for web-specific features
+- Use `Platform.select()` or `Platform.OS` checks for platform differences
+- Always provide `useNativeDriver: Platform.OS !== 'web'` for animations
+- Handle web-specific styling (e.g., `boxShadow` vs native shadow properties)
+
+### Glass Morphism Design System
+- Primary design pattern uses glass morphism effects
+- GlassCard component provides consistent glass backgrounds
+- Blur effects are platform-specific (expo-blur for native, CSS for web)
+- Consistent use of semi-transparent backgrounds with blur
+
+### iOS Compatibility Checklist
+Before committing ANY code, verify:
+- [ ] No direct DOM manipulation without Platform checks
+- [ ] No web-only dependencies in shared code
+- [ ] Animations use `useNativeDriver: Platform.OS !== 'web'`
+- [ ] Styles use Platform.select() for platform differences
+- [ ] All external libraries support React Native iOS
+- [ ] No hardcoded web-specific units (vh, vw, etc.)
+- [ ] Touch interactions work with TouchableOpacity/Pressable
 
 ---
 
