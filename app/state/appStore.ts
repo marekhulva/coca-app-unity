@@ -168,6 +168,7 @@ interface AppState {
   openDailyReflection: () => void
   closeDailyReflection: () => void
   nextReflectionAction: () => void
+  markReflectionActionCompleted: (actionId: string) => void
   setActionBlocker: (actionId: string, reason: string, emojis: string[]) => void
   updateDailyReflection: (field: keyof AppState['dailyReflection'], value: string | string[]) => void
   saveDailyReflection: () => void
@@ -515,6 +516,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ reflectionStep: 'journal' })
     }
   },
+  
+  markReflectionActionCompleted: (actionId) => set((state) => ({
+    checkedActions: {
+      ...state.checkedActions,
+      [actionId]: true
+    }
+  })),
   
   setActionBlocker: (actionId, reason, emojis) => set((state) => ({
     actionReviewResults: {

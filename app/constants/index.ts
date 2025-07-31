@@ -76,3 +76,12 @@ export const FREQUENCY_OPTIONS = [
   { label: 'Sat', value: 'saturday' },
   { label: 'Sun', value: 'sunday' },
 ]
+
+export const BLOCKER_EMOJIS = [
+  { emoji: '📱', label: 'Phone' },
+  { emoji: '😴', label: 'Tired' },
+  { emoji: '🤯', label: 'Forgot' },
+  { emoji: '⏰', label: 'Too busy' },
+  { emoji: '😔', label: 'Not motivated' },
+  { emoji: '🤒', label: 'Sick' },
+]

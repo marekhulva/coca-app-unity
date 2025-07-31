@@ -13,23 +13,14 @@ import {
   TextInput,
   KeyboardAvoidingView,
 } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { GlassButton } from '../../components/GlassButton'
 import { GlassCard } from '../../components/GlassCard'
 import { TextField } from '../../components/TextField'
 import { theme } from '../../themes/theme'
 import { useAppStore } from '../../state/appStore'
+import { BLOCKER_EMOJIS } from '../../constants'
 
 const { width } = Dimensions.get('window')
-
-const BLOCKER_EMOJIS = [
-  { emoji: '📱', label: 'Phone' },
-  { emoji: '😴', label: 'Tired' },
-  { emoji: '🤯', label: 'Forgot' },
-  { emoji: '⏰', label: 'Too busy' },
-  { emoji: '😔', label: 'Not motivated' },
-  { emoji: '🤒', label: 'Sick' },
-]
 
 export const DailyReflectionModal: React.FC = () => {
   const {
@@ -42,6 +33,7 @@ export const DailyReflectionModal: React.FC = () => {
     blockerEmojis,
     closeDailyReflection,
     nextReflectionAction,
+    markReflectionActionCompleted,
     setActionBlocker,
     updateDailyReflection,
     saveDailyReflection,
@@ -80,12 +72,7 @@ export const DailyReflectionModal: React.FC = () => {
     setActionResponse(response)
     if (response) {
       // Mark action as completed and move to next
-      useAppStore.setState((state) => ({
-        checkedActions: {
-          ...state.checkedActions,
-          [currentAction.id]: true,
-        },
-      }))
+      markReflectionActionCompleted(currentAction.id)
       setTimeout(() => {
         resetAndNext()
       }, 300)
@@ -218,7 +205,10 @@ export const DailyReflectionModal: React.FC = () => {
                   onPress={() => toggleEmoji(emoji)}
                 >
                   <Text style={styles.emojiText}>{emoji}</Text>
-                  <Text style={styles.emojiLabel}>{label}</Text>
+                  <Text style={[
+                    styles.emojiLabel,
+                    selectedEmojis.includes(emoji) && styles.emojiLabelActive,
+                  ]}>{label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -390,12 +380,14 @@ export const DailyReflectionModal: React.FC = () => {
       animationType="slide"
       onRequestClose={closeDailyReflection}
     >
-      <TouchableOpacity 
-        style={styles.backdrop} 
-        activeOpacity={1} 
-        onPress={closeDailyReflection}
-      >
-        <SafeAreaView style={styles.safeArea}>
+      <View style={styles.backdrop}>
+        <TouchableOpacity 
+          style={styles.backdropTouch} 
+          activeOpacity={1} 
+          onPress={closeDailyReflection}
+        />
+        <View style={styles.modalContainer}>
+          <SafeAreaView style={styles.safeArea}>
           <View style={styles.header}>
             {renderProgressIndicator()}
             <TouchableOpacity
@@ -409,8 +401,9 @@ export const DailyReflectionModal: React.FC = () => {
           <View style={styles.content}>
             {reflectionStep === 'checkin' ? renderCheckInScreen() : renderJournalScreen()}
           </View>
-        </SafeAreaView>
-      </TouchableOpacity>
+          </SafeAreaView>
+        </View>
+      </View>
     </Modal>
   )
 }
@@ -418,11 +411,39 @@ export const DailyReflectionModal: React.FC = () => {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  backdropTouch: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+
+  modalContainer: {
+    width: '100%',
+    maxWidth: Platform.OS === 'web' ? 430 : '100%',
+    maxHeight: '90%',
+    alignSelf: 'center',
   },
 
   safeArea: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: theme.color.background.primary,
+    borderRadius: theme.radius.xxl,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        ...theme.shadow.xl,
+      },
+      android: {
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0 0 40px rgba(0, 0, 0, 0.2)',
+      },
+    }),
   },
 
   header: {
@@ -448,16 +469,19 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: theme.color.glass.blur,
+    borderWidth: 1,
+    borderColor: theme.color.border.glass,
   },
 
   progressDotActive: {
     backgroundColor: theme.color.primary,
+    borderColor: theme.color.primary,
   },
 
   progressText: {
     fontSize: theme.font.size.sm,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
     opacity: 0.7,
   },
 
@@ -465,14 +489,16 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: theme.color.glass.blur,
+    borderWidth: 1,
+    borderColor: theme.color.border.glass,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   closeText: {
     fontSize: theme.font.size.xl,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
   },
 
   content: {
@@ -492,7 +518,7 @@ const styles = StyleSheet.create({
 
   questionLabel: {
     fontSize: theme.font.size.sm,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
     opacity: 0.7,
     marginBottom: theme.spacing.sm,
   },
@@ -500,7 +526,7 @@ const styles = StyleSheet.create({
   question: {
     fontSize: theme.font.size.xxl,
     fontWeight: theme.font.weight.bold,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
     textAlign: 'center',
     lineHeight: theme.font.size.xxl * 1.3,
   },
@@ -518,7 +544,7 @@ const styles = StyleSheet.create({
   blockerPrompt: {
     fontSize: theme.font.size.lg,
     fontWeight: theme.font.weight.medium,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
     textAlign: 'center',
     marginBottom: theme.spacing.lg,
   },
@@ -535,16 +561,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.radius.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: theme.color.glass.light,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: theme.color.border.glass,
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.xs,
   },
 
   emojiChipActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: theme.color.primary,
     borderColor: theme.color.primary,
   },
 
@@ -554,6 +580,10 @@ const styles = StyleSheet.create({
 
   emojiLabel: {
     fontSize: theme.font.size.sm,
+    color: theme.color.text.primary,
+  },
+
+  emojiLabelActive: {
     color: theme.color.text.inverse,
   },
 
@@ -584,7 +614,7 @@ const styles = StyleSheet.create({
   journalTitle: {
     fontSize: theme.font.size.xxl,
     fontWeight: theme.font.weight.bold,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
     textAlign: 'center',
     marginBottom: theme.spacing.xl,
   },
@@ -596,7 +626,7 @@ const styles = StyleSheet.create({
   journalLabel: {
     fontSize: theme.font.size.md,
     fontWeight: theme.font.weight.medium,
-    color: theme.color.text.inverse,
+    color: theme.color.text.primary,
     marginBottom: theme.spacing.sm,
   },
 
@@ -627,7 +657,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
