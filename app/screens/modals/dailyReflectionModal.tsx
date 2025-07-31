@@ -185,14 +185,14 @@ export const DailyReflectionModal: React.FC = () => {
               title="Yes"
               variant="solid"
               gradient={theme.gradient.success}
-              size="xl"
+              size="lg"
               onPress={() => handleActionResponse(true)}
               style={styles.responseButton}
             />
             <GlassButton
               title="No"
               variant="outline"
-              size="xl"
+              size="lg"
               onPress={() => handleActionResponse(false)}
               style={styles.responseButton}
             />
