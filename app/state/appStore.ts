@@ -111,6 +111,19 @@ interface AppState {
   showPostComposer: boolean
   selectedPromptId: string | null
   
+  // Daily Reflection
+  showDailyReflection: boolean
+  reflectionStep: 'checkin' | 'journal'
+  currentReflectionActionIndex: number
+  dailyReflection: {
+    biggestWin: string
+    biggestInsight: string
+    gratefulFor: string
+    tomorrowIntention: string
+    tomorrowTodos: string[]
+  }
+  blockerEmojis: { [actionId: string]: string[] }
+  
   setAppState: (state: 'setup' | 'main') => void
   setCurrentStep: (step: number) => void
   setCurrentScreen: (screen: 'social' | 'daily' | 'progress' | 'profile') => void
@@ -150,6 +163,14 @@ interface AppState {
   openPostComposer: (promptId: string | null) => void
   closePostComposer: () => void
   publishPost: (content: string) => void
+  
+  // Daily Reflection Actions
+  openDailyReflection: () => void
+  closeDailyReflection: () => void
+  nextReflectionAction: () => void
+  setActionBlocker: (actionId: string, reason: string, emojis: string[]) => void
+  updateDailyReflection: (field: keyof AppState['dailyReflection'], value: string | string[]) => void
+  saveDailyReflection: () => void
 }
 
 const initialUser: User = {
@@ -224,6 +245,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   showPostComposer: false,
   selectedPromptId: null,
+  
+  // Daily Reflection
+  showDailyReflection: false,
+  reflectionStep: 'checkin',
+  currentReflectionActionIndex: 0,
+  dailyReflection: {
+    biggestWin: '',
+    biggestInsight: '',
+    gratefulFor: '',
+    tomorrowIntention: '',
+    tomorrowTodos: [],
+  },
+  blockerEmojis: {},
   
   setAppState: (state) => set({ appState: state }),
   setCurrentStep: (step) => set({ currentStep: step }),
@@ -445,6 +479,68 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     set({
       feedPosts: [newPost, ...state.feedPosts],
+    })
+  },
+  
+  // Daily Reflection Actions
+  openDailyReflection: () => set({ 
+    showDailyReflection: true, 
+    reflectionStep: 'checkin',
+    currentReflectionActionIndex: 0,
+    dailyReflection: {
+      biggestWin: '',
+      biggestInsight: '',
+      gratefulFor: '',
+      tomorrowIntention: '',
+      tomorrowTodos: [],
+    },
+    blockerEmojis: {},
+  }),
+  
+  closeDailyReflection: () => set({ 
+    showDailyReflection: false,
+    reflectionStep: 'checkin',
+    currentReflectionActionIndex: 0,
+  }),
+  
+  nextReflectionAction: () => {
+    const state = get()
+    const missedActions = state.userActions.filter(
+      action => !state.checkedActions[action.id]
+    )
+    
+    if (state.currentReflectionActionIndex < missedActions.length - 1) {
+      set({ currentReflectionActionIndex: state.currentReflectionActionIndex + 1 })
+    } else {
+      set({ reflectionStep: 'journal' })
+    }
+  },
+  
+  setActionBlocker: (actionId, reason, emojis) => set((state) => ({
+    actionReviewResults: {
+      ...state.actionReviewResults,
+      [actionId]: { completed: false, reason }
+    },
+    blockerEmojis: {
+      ...state.blockerEmojis,
+      [actionId]: emojis
+    }
+  })),
+  
+  updateDailyReflection: (field, value) => set((state) => ({
+    dailyReflection: {
+      ...state.dailyReflection,
+      [field]: value
+    }
+  })),
+  
+  saveDailyReflection: () => {
+    const state = get()
+    // Here we would normally save to backend
+    // For now, just close the modal
+    set({ 
+      showDailyReflection: false,
+      // Tomorrow's intention will be displayed on daily screen
     })
   },
 }))

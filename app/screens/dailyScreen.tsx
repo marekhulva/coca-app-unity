@@ -15,6 +15,7 @@ import { ProgressRing } from '../components/ProgressRing'
 import { GlassButton } from '../components/GlassButton'
 import { ScreenLayout } from '../layouts/ScreenLayout'
 import { ShareActionModal } from './modals/shareActionModal'
+import { DailyReflectionModal } from './modals/dailyReflectionModal'
 import { theme } from '../themes/theme'
 import { useAppStore } from '../state/appStore'
 
@@ -27,6 +28,8 @@ export const DailyScreen: React.FC = () => {
     checkedActions,
     toggleAction,
     openSMSFlow,
+    openDailyReflection,
+    dailyReflection,
   } = useAppStore()
 
   const fadeAnim = useRef(new Animated.Value(0)).current
@@ -173,6 +176,23 @@ export const DailyScreen: React.FC = () => {
           })}
         </Text>
 
+        {dailyReflection.tomorrowIntention && (
+          <Animated.View
+            style={[
+              styles.intentionCard,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
+            <GlassCard variant="light" intensity={95} style={styles.intentionContent}>
+              <Text style={styles.intentionLabel}>Today's Intention</Text>
+              <Text style={styles.intentionText}>{dailyReflection.tomorrowIntention}</Text>
+            </GlassCard>
+          </Animated.View>
+        )}
+
         <Animated.View style={[
           styles.progressContainer,
           { transform: [{ scale: scaleAnim }] }
@@ -259,7 +279,7 @@ export const DailyScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.reviewCard}
-          onPress={openSMSFlow}
+          onPress={openDailyReflection}
           activeOpacity={0.9}
         >
           <LinearGradient
@@ -333,18 +353,15 @@ export const DailyScreen: React.FC = () => {
             elevation: 5,
           }}
           onPress={() => {
-            useAppStore.setState({
-              showSMSFlow: true,
-              smsStep: 0,
-              currentActionIndex: 0,
-            })
+            useAppStore.getState().openDailyReflection()
           }}
         >
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>Test Daily Review</Text>
+          <Text style={{ color: 'white', fontWeight: 'bold' }}>Test Daily Reflection</Text>
         </TouchableOpacity>
       </View>
       
       <ShareActionModal />
+      <DailyReflectionModal />
     </ScreenLayout>
   )
 }
@@ -594,5 +611,27 @@ const styles = StyleSheet.create({
   
   reviewEmoji: {
     fontSize: 28,
+  },
+  
+  intentionCard: {
+    marginVertical: theme.spacing.lg,
+  },
+  
+  intentionContent: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
+  },
+  
+  intentionLabel: {
+    fontSize: theme.font.size.sm,
+    color: theme.color.text.secondary,
+    marginBottom: theme.spacing.xs,
+  },
+  
+  intentionText: {
+    fontSize: theme.font.size.md,
+    fontWeight: theme.font.weight.medium,
+    color: theme.color.text.primary,
+    fontStyle: 'italic',
   },
 })
