@@ -1,11 +1,15 @@
-// Import Matrix theme
+// Import themes
 import { matrixTheme } from './theme.matrix'
+import { vibrantTheme } from './theme.vibrant'
 
 // To use Matrix theme, uncomment the line below:
 // export const theme = matrixTheme
 
-// ACTIVE THEME: ORIGINAL
-export const theme = {
+// ACTIVE THEME: VIBRANT (as shown in ARCHITECTURE.md)
+export const theme = vibrantTheme
+
+// Original blue theme (commented out)
+export const blueTheme = {
   color: {
     primary: '#007AFF',
     secondary: '#5856D6',
